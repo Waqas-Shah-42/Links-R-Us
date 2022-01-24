@@ -6,6 +6,15 @@ import (
 	"github.com/google/uuid"
 )
 
+type Iterator interface {
+	// If next item doesn't exist or an error occours, Next() returns false.
+	Next() bool
+
+	Error() error
+
+	Close() error
+}
+
 type Link struct {
 	ID          uuid.UUID
 	URL         string
@@ -17,6 +26,18 @@ type Edge struct {
 	Src       uuid.UUID
 	Dst       uuid.UUID
 	updatedAt time.Time
+}
+
+type LinkIterator interface {
+	Iterator
+
+	Link() *Link
+}
+
+type EdgeIterator interface {
+	Iterator
+
+	Edge() *Edge
 }
 
 type Graph interface {

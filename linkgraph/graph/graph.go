@@ -43,8 +43,8 @@ type EdgeIterator interface {
 }
 
 type Graph interface {
-	UpserLink(link *Link) error
-	FindLink(link *Link) (*Link, error)
+	UpsertLink(link *Link) error
+	FindLink(id uuid.UUID) (*Link, error)
 
 	UpsertEdge(edge *Edge) error
 	RemoveStaleEdges(fromID uuid.UUID, updatedBefore time.Time) error

@@ -18,3 +18,5 @@ type InMemoryGraphTestSuite struct {
 func (s *InMemoryGraphTestSuite) SetUpTest(c *gc.C) {
 	s.SetGraph(NewInMemoryGraph())
 }
+
+// In-memory graph implementation completed

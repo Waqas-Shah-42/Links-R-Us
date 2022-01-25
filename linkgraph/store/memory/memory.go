@@ -94,3 +94,34 @@ func (s *InMemoryGraph) UpsertEdge(edge *graph.Edge) error {
 	s.linkEdgeMap[edge.Src] = append(s.linkEdgeMap[edge.Src], eCopy.ID)
 	return nil
 }
+
+func (s *InMemoryGraph) FindLink(id uuid.UUID) (*graph.Link, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	link := s.links[id]
+
+	if link == nil {
+		return nil, xerrors.Errorf("find link: %w", graph.ErrNotFound)
+	}
+
+	lCopy := new(graph.Link)
+	*lCopy = *link
+	return lCopy, nil
+}
+
+func (s *InMemoryGraph) Links(fromID, toID uuid.UUID, retrievedBefore time.Time) (graph.LinkIterator, error) {
+	from, to := fromID.String(), toID.String()
+
+	s.mu.RLock()
+	var list []*graph.Link
+	for linkID, link := range s.links {
+		if id := linkID.String(); id >= from && id < to && link.RetrievedAt.Before(retrievedBefore) { //TO-DO what does this mean
+			list = append(list, link)
+		}
+	}
+	s.mu.RLocker()
+
+	return &linkIterator{s: s, links: list}, nil
+
+}

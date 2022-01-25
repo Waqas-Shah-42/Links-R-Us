@@ -2,9 +2,11 @@ package memory
 
 import (
 	"sync"
+	"time"
 
 	"github.com/Waqas-Shah-42/Links-R-Us/linkgraph/graph"
 	"github.com/google/uuid"
+	"golang.org/x/xerrors"
 )
 
 // Compile-time check for ensuring InMemoryGraph implements Graph.
@@ -52,5 +54,43 @@ func (s *InMemoryGraph) UpsertLink(link *graph.Link) error {
 	*lCopy = *link
 	s.linkURLIndex[lCopy.URL] = lCopy
 	s.links[lCopy.ID] = lCopy
+	return nil
+}
+
+func (s *InMemoryGraph) UpsertEdge(edge *graph.Edge) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	_, srcExists := s.links[edge.Src]
+	_, dstExists := s.links[edge.Dst]
+
+	if !srcExists || !dstExists {
+		return xerrors.Errorf("upsert edge: %w", graph.ErrUnknownEdgeLinks)
+	}
+
+	// Scan edge list from source
+	for _, edgeID := range s.linkEdgeMap[edge.Src] {
+		existingEdge := s.edges[edgeID]
+		if existingEdge.Src == edge.Src && existingEdge.Dst == edge.Dst {
+			existingEdge.UpdatedAt = time.Now()
+			*edge = *existingEdge
+			return nil
+		}
+	}
+
+	for {
+		edge.ID = uuid.New()
+		if s.edges[edge.ID] == nil {
+			break
+		}
+	}
+
+	edge.UpdatedAt = time.Now()
+	eCopy := new(graph.Edge)
+	*eCopy = *edge
+	s.edges[eCopy.ID] = eCopy
+
+	// Append the edge ID to the list of edges originating fdrom the edge's source link
+	s.linkEdgeMap[edge.Src] = append(s.linkEdgeMap[edge.Src], eCopy.ID)
 	return nil
 }

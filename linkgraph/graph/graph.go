@@ -15,17 +15,19 @@ type Iterator interface {
 	Close() error
 }
 
+// Link encapsulates all data for the URL required by the project
 type Link struct {
 	ID          uuid.UUID
 	URL         string
 	RetrievedAt time.Time
 }
 
+// Edge describes a graph edge that originates from src and terminates at Dst
 type Edge struct {
 	ID        uuid.UUID
 	Src       uuid.UUID
 	Dst       uuid.UUID
-	updatedAt time.Time
+	UpdatedAt time.Time
 }
 
 type LinkIterator interface {

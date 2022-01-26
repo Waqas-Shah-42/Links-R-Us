@@ -5,7 +5,7 @@
 *.so
 *.dylib
 *.pdf
-
+cockroach-data/
 # Test binary, built with `go test -c`
 *.test
 

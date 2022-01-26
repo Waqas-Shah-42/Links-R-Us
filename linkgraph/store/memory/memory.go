@@ -126,7 +126,7 @@ func (s *InMemoryGraph) Links(fromID, toID uuid.UUID, retrievedBefore time.Time)
 	s.mu.RLock()
 	var list []*graph.Link
 	for linkID, link := range s.links {
-		if id := linkID.String(); id >= from && id < to && link.RetrievedAt.Before(retrievedBefore) { //TO-DO what does this mean
+		if id := linkID.String(); id >= from && id < to && link.RetrievedAt.Before(retrievedBefore) {
 			list = append(list, link)
 		}
 	}

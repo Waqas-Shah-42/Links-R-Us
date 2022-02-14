@@ -7,7 +7,7 @@ deps:
 		dep ensure;\
 	fi
 
-test: 
+test:
 	@echo "[go test] running tests and collecting coverage metrics"
 	@go test -v -tags all_tests -race -coverprofile=coverage.txt -covermode=atomic ./...
 

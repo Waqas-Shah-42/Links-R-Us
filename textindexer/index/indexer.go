@@ -6,36 +6,36 @@ import (
 	"github.com/google/uuid"
 )
 
-
 type Indexer interface {
 	Index(doc *Document) error
-	FindByID (linkID uuid.UUID) (*Document, error)
-	Search (query Query) (Iterator, error)
- }
+	FindByID(linkID uuid.UUID) (*Document, error)
+	Search(query Query) (Iterator, error)
+	UpdateScore(linkID uuid.UUID, score float64) error
+}
 
 type Document struct {
 	LinkID uuid.UUID
 
 	URL string
 
-	Title string
+	Title   string
 	Content string
 
 	IndexedAt time.Time
-	PageRank float64
+	PageRank  float64
 }
 
 type Query struct {
-	Type QueryType
+	Type       QueryType
 	Expression string
-	Offset uint64
+	Offset     uint64
 }
 
 type QueryType uint8
 
 const (
 	QueryTypeMatch QueryType = iota
-	QueryTypePhase
+	QueryTypePhrase
 )
 
 type Iterator interface {

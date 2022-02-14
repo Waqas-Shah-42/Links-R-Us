@@ -11,13 +11,12 @@ import (
 	"golang.org/x/xerrors"
 )
 
-
 const batchSize = 10
 
 var _ index.Indexer = (*InMemoryBleveIndexer)(nil)
 
 type InMemoryBleveIndexer struct {
-	mu sync.RWMutex
+	mu   sync.RWMutex
 	docs map[string]*index.Document
 
 	idx bleve.Index
@@ -29,6 +28,18 @@ type bleveDoc struct {
 	PageRank float64
 }
 
+func NewInMemoryBleveIndexer() (*InMemoryBleveIndexer, error) {
+	mapping := bleve.NewIndexMapping()
+	idx, err := bleve.NewMemOnly(mapping)
+	if err != nil {
+		return nil, err
+	}
+
+	return &InMemoryBleveIndexer{
+		idx:  idx,
+		docs: make(map[string]*index.Document),
+	}, nil
+}
 
 func makeBleveDoc(d *index.Document) bleveDoc {
 	return bleveDoc{
@@ -40,12 +51,12 @@ func makeBleveDoc(d *index.Document) bleveDoc {
 
 func (i *InMemoryBleveIndexer) Index(doc *index.Document) error {
 	if doc.LinkID == uuid.Nil {
-		return xerrors.Errorf("index: %w",index.ErrMissingLinkID)
+		return xerrors.Errorf("index: %w", index.ErrMissingLinkID)
 	}
 	doc.IndexedAt = time.Now()
 	dcopy := copyDoc(doc)
 	key := dcopy.LinkID.String()
-	
+
 	i.mu.Lock()
 	if orig, exists := i.docs[key]; exists {
 		dcopy.PageRank = orig.PageRank
@@ -71,11 +82,10 @@ func (i *InMemoryBleveIndexer) findByID(LinkID string) (*index.Document, error) 
 		return copyDoc(d), nil
 	}
 
-	return nil, xerrors.Errorf("find by ID: %w",index.ErrNotFound)
+	return nil, xerrors.Errorf("find by ID: %w", index.ErrNotFound)
 }
 
-
-func (i *InMemoryBleveIndexer) UpdateScore(linkID uuid.UUID,score float64) error {
+func (i *InMemoryBleveIndexer) UpdateScore(linkID uuid.UUID, score float64) error {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 	key := linkID.String()
@@ -96,19 +106,30 @@ func (i *InMemoryBleveIndexer) UpdateScore(linkID uuid.UUID,score float64) error
 func (i *InMemoryBleveIndexer) Search(q index.Query) (index.Iterator, error) {
 	var bq query.Query
 	switch q.Type {
-	case index.QueryTypePhase:
+	case index.QueryTypePhrase:
 		bq = bleve.NewMatchPhraseQuery(q.Expression)
 	default:
 		bq = bleve.NewMatchQuery(q.Expression)
 	}
 
 	searchReq := bleve.NewSearchRequest(bq)
-	searchReq.SortBy([]string{"-PageRank","_score"})
+	searchReq.SortBy([]string{"-PageRank", "_score"})
 	searchReq.Size = batchSize
 	searchReq.From = int(q.Offset)
 	rs, err := i.idx.Search(searchReq)
 	if err != nil {
 		return nil, xerrors.Errorf("search: %w", err)
 	}
-	return &bleveIterator{idx: i, searchReq: searchReq,rs:rs,cumIdx:q.Offset}, nil
+	return &bleveIterator{idx: i, searchReq: searchReq, rs: rs, cumIdx: q.Offset}, nil
+}
+
+// Close the indexer and release any allocated resources.
+func (i *InMemoryBleveIndexer) Close() error {
+	return i.idx.Close()
+}
+
+func copyDoc(d *index.Document) *index.Document {
+	dcopy := new(index.Document)
+	*dcopy = *d
+	return dcopy
 }
